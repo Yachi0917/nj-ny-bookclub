@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { Plus, X, Book, User, Lock } from 'lucide-react';
+import { Plus, X, Book, User, Lock, Star } from 'lucide-react';
 
 // Supabase 설정
 const SUPABASE_URL = 'https://psdrakjfbumzmwbpzwkd.supabase.co';
@@ -13,13 +13,15 @@ function App() {
   const [filter, setFilter] = useState('ALL'); 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null); 
-  const [newComment, setNewComment] = useState({ author: '', content: '' });
+  
+  // 새 독후감 상태 (rating 기본값 5 추가)
+  const [newComment, setNewComment] = useState({ author: '', content: '', rating: 5 });
   const [formData, setFormData] = useState({ title: '', author: '', image_url: '', region: 'NY' });
 
   // --- 비밀번호 보안 상태 ---
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
-  const CORRECT_PASSWORD = "5557";
+  const CORRECT_PASSWORD = "5557"; 
 
   useEffect(() => { 
     if (isLoggedIn) fetchPosts(); 
@@ -47,15 +49,24 @@ function App() {
     }
   }
 
+  // 독후감 저장 (별점 포함)
   async function handleAddComment(e) {
     e.preventDefault();
     if (!newComment.author || !newComment.content) return;
+    
     const { error } = await supabase.from('comments').insert([
-      { post_id: selectedPost.id, author: newComment.author, content: newComment.content }
+      { 
+        post_id: selectedPost.id, 
+        author: newComment.author, 
+        content: newComment.content,
+        rating: newComment.rating 
+      }
     ]);
-    if (error) alert("저장 실패!");
-    else {
-      setNewComment({ author: '', content: '' });
+
+    if (error) {
+      alert("저장 실패! (Supabase에 rating 컬럼을 추가했는지 확인하세요)");
+    } else {
+      setNewComment({ author: '', content: '', rating: 5 });
       fetchComments(selectedPost.id);
     }
   }
@@ -72,39 +83,30 @@ function App() {
 
   const filteredPosts = filter === 'ALL' ? posts : posts.filter(p => p.region === filter);
 
-  // --- 1. 로그인 전 화면 (비밀번호 입력창) ---
+  // --- 1. 로그인 전 화면 ---
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-[#FDFCF0] flex items-center justify-center p-6 text-center">
         <div className="bg-white p-12 rounded-[3rem] shadow-xl max-w-md w-full border border-orange-100">
-          <div className="w-20 h-20 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Lock className="text-[#D32F2F]" size={32} />
-          </div>
-          <h1 className="text-2xl font-black mb-2">뉴욕·뉴저지 북클럽</h1>
-          <p className="text-slate-400 mb-8 font-medium text-sm text-balance">멤버 확인을 위해<br/>비밀번호를 입력해 주세요.</p>
+          <div className="w-20 h-20 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-6 text-[#D32F2F]"><Lock size={32} /></div>
+          <h1 className="text-2xl font-black mb-2 text-slate-800">뉴욕·뉴저지 북클럽</h1>
+          <p className="text-slate-400 mb-8 font-medium text-sm">멤버 확인을 위해 비밀번호를 입력해 주세요.</p>
           <form onSubmit={handleLogin} className="space-y-4">
-            <input 
-              type="password" 
-              placeholder="비밀번호 입력"
-              value={passwordInput}
-              onChange={(e) => setPasswordInput(e.target.value)}
-              className="w-full p-5 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-red-100 text-center text-lg font-bold"
-            />
-            <button type="submit" className="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold hover:bg-black transition-all shadow-lg">
-              입장하기
-            </button>
+            <input type="password" placeholder="비밀번호 입력" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)}
+              className="w-full p-5 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-red-100 text-center text-lg font-bold" />
+            <button type="submit" className="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold hover:bg-black transition-all shadow-lg text-lg">입장하기</button>
           </form>
         </div>
       </div>
     );
   }
 
-  // --- 2. 로그인 후 메인 화면 ---
+  // --- 2. 메인 화면 ---
   return (
     <div className="min-h-screen bg-[#FDFCF0] text-slate-800 pb-20">
       <header className="flex flex-col items-center py-16 px-4">
-        <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm mb-6 border border-orange-100 rotate-1 flex flex-row items-center gap-6">
-          <img src="/logo.png" alt="로고" className="w-20 h-20 md:w-24 md:h-24 object-contain" />
+        <div className="bg-white p-10 md:p-8 rounded-3xl shadow-sm mb-6 border border-orange-100 rotate-1 flex flex-row items-center gap-6">
+          <img src="/logo.png" alt="로고" className="w-28 h-28 md:w-24 md:h-24 object-contain" />
           <h1 className="text-3xl md:text-4xl font-black tracking-tighter leading-tight text-left">
             뉴욕·뉴저지<br/><span className="text-[#D32F2F]">북클럽</span>
           </h1>
@@ -113,11 +115,9 @@ function App() {
         <div className="flex justify-center gap-3 mt-12 p-1.5 bg-white rounded-full border border-orange-50 shadow-sm">
           {['ALL', 'NY', 'NJ'].map((loc) => (
             <button key={loc} onClick={() => setFilter(loc)}
-              className={`px-10 py-3 rounded-full text-sm font-bold transition-all ${
-                filter === loc ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400'
-              }`}
+              className={`px-10 py-3 rounded-full text-sm font-bold transition-all ${filter === loc ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400'}`}
             >
-              {loc === 'ALL' ? '전체 서재' : loc === 'NY' ? '🍎 뉴욕' : '🌳 뉴저지'}
+              {loc === 'ALL' ? '전체 서재' : loc === 'NY' ? '뉴욕' : '뉴저지'}
             </button>
           ))}
         </div>
@@ -143,25 +143,25 @@ function App() {
         </div>
       </main>
 
-      {/* --- 상세 보기 모달 --- */}
+      {/* --- 상세 모달 (별점 표시) --- */}
       {selectedPost && (
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md flex items-center justify-center p-4 z-[100]" onClick={() => setSelectedPost(null)}>
           <div className="bg-white rounded-[2.5rem] w-full max-w-5xl h-[90vh] overflow-hidden shadow-2xl flex flex-col md:flex-row" onClick={e => e.stopPropagation()}>
             <div className="md:w-5/12 bg-slate-100 flex items-center justify-center p-12">
-              <img src={selectedPost.image_url} className="max-h-full rounded-lg shadow-2xl border-4 border-white" alt="cover" />
+              <img src={selectedPost.image_url} className="max-h-full rounded-lg shadow-2xl border-4 border-white" />
             </div>
             <div className="md:w-7/12 p-10 flex flex-col h-full bg-white relative">
               <button onClick={() => setSelectedPost(null)} className="absolute top-8 right-8 p-2 hover:bg-slate-100 rounded-full transition"><X/></button>
               <h2 className="text-3xl font-bold mb-1 text-left">{selectedPost.title}</h2>
               <p className="text-lg text-slate-400 mb-8 font-medium border-b pb-4 text-left">{selectedPost.author}</p>
+              
+              {/* 독후감 리스트 */}
               <div className="flex-1 overflow-y-auto space-y-6 pr-4 mb-6 custom-scrollbar text-left">
-                {comments.length === 0 ? (
-                  <p className="text-center text-slate-400 py-10 italic">첫 독후감을 남겨주세요!</p>
-                ) : (
+                {comments.length === 0 ? <p className="text-center text-slate-400 py-10 italic">첫 독후감을 남겨주세요!</p> : (
                   comments.map(c => (
                     <div key={c.id} className="bg-orange-50/50 p-6 rounded-2xl border-l-4 border-red-200 shadow-sm">
-                      <div className="flex items-center gap-2 mb-2">
-                        <User size={16} className="text-red-400"/>
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="flex text-yellow-400 text-xs">{"★".repeat(c.rating || 5)}{"☆".repeat(5 - (c.rating || 5))}</div>
                         <span className="font-bold text-sm text-slate-700">{c.author}</span>
                       </div>
                       <p className="text-slate-600 leading-relaxed italic">"{c.content}"</p>
@@ -169,10 +169,19 @@ function App() {
                   ))
                 )}
               </div>
+
+              {/* 독후감 입력 (별점 선택 포함) */}
               <form onSubmit={handleAddComment} className="bg-slate-50 p-6 rounded-3xl space-y-3 border border-slate-100 text-left">
-                <input type="text" placeholder="작성자 이름" required value={newComment.author} onChange={e => setNewComment({...newComment, author: e.target.value})} className="w-full p-3 bg-white rounded-xl text-sm outline-none focus:ring-2 focus:ring-red-100" />
+                <div className="flex justify-between items-center px-1">
+                  <input type="text" placeholder="작성자 이름" required value={newComment.author} onChange={e => setNewComment({...newComment, author: e.target.value})} className="bg-transparent font-bold text-sm outline-none border-b border-slate-200 focus:border-red-300 pb-1" />
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map(num => (
+                      <button key={num} type="button" onClick={() => setNewComment({...newComment, rating: num})} className={`text-xl ${newComment.rating >= num ? 'text-yellow-400' : 'text-slate-200'}`}>★</button>
+                    ))}
+                  </div>
+                </div>
                 <div className="flex gap-2">
-                  <textarea placeholder="마음을 울린 문장을 기록하세요..." required value={newComment.content} onChange={e => setNewComment({...newComment, content: e.target.value})} className="flex-1 p-3 bg-white rounded-xl text-sm h-20 outline-none focus:ring-2 focus:ring-red-100 resize-none" />
+                  <textarea placeholder="마음을 울린 문장을 기록하세요..." required value={newComment.content} onChange={e => setNewComment({...newComment, content: e.target.value})} className="flex-1 p-3 bg-white rounded-xl text-sm h-20 outline-none resize-none" />
                   <button type="submit" className="bg-slate-900 text-white px-6 rounded-xl font-bold hover:bg-black transition shrink-0">기록</button>
                 </div>
               </form>
@@ -181,12 +190,12 @@ function App() {
         </div>
       )}
 
-      {/* --- 새 책 추가 모달 --- */}
+      {/* --- 책 추가 모달 (기존 동일) --- */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-[2.5rem] w-full max-w-lg shadow-2xl overflow-hidden">
-            <div className="p-8 border-b bg-slate-50/50 flex justify-between items-center">
-              <h3 className="text-2xl font-black text-left">새 책 추가하기</h3>
+            <div className="p-8 border-b bg-slate-50/50 flex justify-between items-center text-left">
+              <h3 className="text-2xl font-black">새 책 추가하기</h3>
               <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-white rounded-full transition"><X /></button>
             </div>
             <form onSubmit={handleSubmit} className="p-10 space-y-6 text-left">
@@ -200,7 +209,7 @@ function App() {
               <input type="text" placeholder="책 제목" required className="w-full p-4 bg-slate-50 rounded-2xl outline-none" onChange={e => setFormData({...formData, title: e.target.value})} />
               <input type="text" placeholder="작가명" required className="w-full p-4 bg-slate-50 rounded-2xl outline-none" onChange={e => setFormData({...formData, author: e.target.value})} />
               <input type="text" placeholder="이미지 URL" required className="w-full p-4 bg-slate-50 rounded-2xl outline-none" onChange={e => setFormData({...formData, image_url: e.target.value})} />
-              <button type="submit" className="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold shadow-xl hover:bg-black transition-all">책장에 추가하기</button>
+              <button type="submit" className="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold shadow-xl">책장에 추가하기</button>
             </form>
           </div>
         </div>

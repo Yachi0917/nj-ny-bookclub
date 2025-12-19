@@ -1,1 +1,9 @@
 @import "tailwindcss";
+
+/* FullCalendar 커스텀 스타일 */
+.fc { --fc-border-color: #f8fafc; --fc-button-bg-color: #1e293b; --fc-button-border-color: #1e293b; --fc-button-hover-bg-color: #0f172a; }
+.fc .fc-toolbar-title { font-size: 1.5rem; font-weight: 900; color: #1e293b; }
+.fc .fc-col-header-cell-cushion { color: #64748b; font-size: 0.875rem; padding: 12px 0; }
+.fc .fc-daygrid-day-number { color: #94a3b8; font-weight: 600; padding: 10px; }
+.fc-event { cursor: pointer; padding: 2px 8px; border-radius: 6px; font-weight: 600; }
+.fc .fc-day-today { background-color: #fefce8 !important; } /* 오늘 날짜 강조 */

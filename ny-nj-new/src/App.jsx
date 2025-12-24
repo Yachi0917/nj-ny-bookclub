@@ -5,6 +5,7 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 
+// Supabase 설정
 const supabase = createClient('https://psdrakjfbumzmwbpzwkd.supabase.co', 'sb_publishable_IWQriti-EmIH4ekLRuLfmg_16fLyZY0');
 
 function App() {
@@ -13,23 +14,26 @@ function App() {
   const [passwordInput, setPasswordInput] = useState("");
   const CORRECT_PASSWORD = "5557";
 
+  // 상태 관리
   const [posts, setPosts] = useState([]);
   const [essays, setEssays] = useState([]);
   const [events, setEvents] = useState([]);
   const [comments, setComments] = useState([]);
   const [filter, setFilter] = useState('ALL');
 
-  // --- 독후감 전용 추가 상태 ---
-  const [essayComments, setEssayComments] = useState({}); // { essayId: [comments] }
-  const [essayLikes, setEssayLikes] = useState({}); // { essayId: count }
-  const [essayCommentInputs, setEssayCommentInputs] = useState({}); // { essayId: { author, content } }
+  // 독후감(Archive) 관련 상태
+  const [essayComments, setEssayComments] = useState({});
+  const [essayLikes, setEssayLikes] = useState({});
+  const [essayCommentInputs, setEssayCommentInputs] = useState({});
   
+  // 모달 제어 상태
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
-  const [formData, setFormData] = useState({ title: '', author: '', image_url: '', region: 'NY' });
+  // 폼 데이터 상태 (시즌, 날짜 포함)
+  const [formData, setFormData] = useState({ title: '', author: '', image_url: '', region: 'NY', meeting_date: '', season: '1' });
   const [newComment, setNewComment] = useState({ author: '', content: '', rating: 5 });
   const [essayForm, setEssayForm] = useState({ title: '', book_title: '', author: '', content: '' });
   const [newEvent, setNewEvent] = useState({ title: '', start: '', description: '', region: 'NY', image_url: '' });
@@ -42,12 +46,17 @@ function App() {
     }
   }, [isLoggedIn]);
 
+  // 01. Library 데이터 가져오기 (시즌 역순 -> 날짜 역순 정렬)
   async function fetchPosts() {
-    const { data } = await supabase.from('reviews').select('*').order('created_at', { ascending: false });
+    const { data } = await supabase
+      .from('reviews')
+      .select('*')
+      .order('season', { ascending: false })
+      .order('meeting_date', { ascending: false });
     if (data) setPosts(data);
   }
 
-  // 독후감 및 관련 데이터(댓글, 좋아요) 가져오기
+  // 02. Archive(에세이) 데이터 가져오기
   async function fetchEssays() {
     const { data } = await supabase.from('essays').select('*').order('created_at', { ascending: false });
     if (data) {
@@ -56,41 +65,39 @@ function App() {
     }
   }
 
+  // 에세이 부가 정보(댓글, 좋아요) 가져오기
   async function fetchEssayExtras(essayId) {
-    // 댓글 로드
     const { data: cData } = await supabase.from('essay_comments').select('*').eq('essay_id', essayId).order('created_at', { ascending: true });
     setEssayComments(prev => ({ ...prev, [essayId]: cData || [] }));
-    // 좋아요 수 로드
     const { count } = await supabase.from('essay_likes').select('*', { count: 'exact', head: true }).eq('essay_id', essayId);
     setEssayLikes(prev => ({ ...prev, [essayId]: count || 0 }));
   }
 
-  // 좋아요 클릭 함수
+  // 에세이 좋아요 처리
   async function handleEssayLike(essayId) {
     const { error } = await supabase.from('essay_likes').insert([{ essay_id: essayId }]);
     if (!error) fetchEssayExtras(essayId);
   }
 
-  // 댓글 전송 함수 (Send 버튼 클릭시 실행)
+  // 에세이 댓글 전송
   async function handleEssayCommentSubmit(essayId) {
     const input = essayCommentInputs[essayId];
     if (!input?.author || !input?.content) {
       alert("이름과 내용을 입력해주세요.");
       return;
     }
-
     const { error } = await supabase.from('essay_comments').insert([{ 
       essay_id: essayId, 
       author: input.author, 
       content: input.content 
     }]);
-
     if (!error) {
       setEssayCommentInputs(prev => ({ ...prev, [essayId]: { author: '', content: '' } }));
       fetchEssayExtras(essayId);
     }
   }
 
+  // 캘린더 이벤트 가져오기
   async function fetchEvents() {
     const { data } = await supabase.from('events').select('*');
     if (data) {
@@ -179,17 +186,50 @@ function App() {
               <h3 className="text-2xl font-bold italic text-stone-500 tracking-tight">01. Our Library</h3>
               <button onClick={() => setIsModalOpen(true)} className="text-[12px] font-bold tracking-wider text-[#722F37] uppercase border-2 border-[#722F37]/20 px-6 py-2 rounded-full hover:bg-[#722F37] hover:text-white transition-all">+ Register</button>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-12 md:gap-16">
-              {(filter === 'ALL' ? posts : posts.filter(p => p.region === filter)).map(post => (
-                <div key={post.id} onClick={async () => { setSelectedPost(post); const {data} = await supabase.from('comments').select('*').eq('post_id', post.id).order('created_at', { ascending: true }); setComments(data || []); }} className="group cursor-pointer">
-                  <div className="relative aspect-[2/3] mb-5 overflow-hidden shadow-xl border border-stone-200 bg-white">
-                    <img src={post.image_url} className="w-full h-full object-cover grayscale-[10%] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700" alt="cover" />
+
+            {/* 시즌별 그룹화 렌더링 */}
+            {[...new Set(posts.map(p => p.season))].sort((a, b) => b - a).map(season => {
+              const seasonPosts = posts.filter(p => p.season === season && (filter === 'ALL' || p.region === filter));
+              if (seasonPosts.length === 0) return null;
+
+              return (
+                <div key={season} className="mb-24 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                  <div className="flex items-center gap-4 mb-10">
+                    <h4 className="text-xl font-black text-stone-900 uppercase tracking-tighter italic">Season {season}</h4>
+                    <div className="flex-1 h-[1px] bg-stone-200"></div>
                   </div>
-                  <h4 className="font-bold text-lg mb-1 leading-tight text-stone-900 group-hover:text-[#722F37] transition-colors">{post.title}</h4>
-                  <p className="text-[14px] text-stone-500 font-medium italic">{post.author}</p>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-12 md:gap-16">
+                    {seasonPosts.map(post => (
+                      <div key={post.id} 
+                        onClick={async () => { 
+                          setSelectedPost(post); 
+                          const {data} = await supabase.from('comments').select('*').eq('post_id', post.id).order('created_at', { ascending: true }); 
+                          setComments(data || []); 
+                        }} 
+                        className="group cursor-pointer"
+                      >
+                        <div className="relative aspect-[2/3] mb-5 overflow-hidden shadow-xl border border-stone-200 bg-white">
+                          <img src={post.image_url} className="w-full h-full object-cover grayscale-[10%] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700" alt="cover" />
+                          <div className="absolute top-3 left-3 flex flex-col gap-1">
+                            <span className={`px-2 py-1 text-[10px] font-black text-white rounded-sm shadow-md ${post.region === 'NY' ? 'bg-[#722F37]' : 'bg-[#4A5D4E]'}`}>
+                              {post.region === 'NY' ? '🍎 NY' : '🌳 NJ'}
+                            </span>
+                            {post.meeting_date && (
+                              <span className="bg-white/90 px-2 py-1 text-[9px] font-bold text-stone-800 rounded-sm shadow-sm">
+                                {post.meeting_date}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <h4 className="font-bold text-lg mb-1 leading-tight text-stone-900 group-hover:text-[#722F37] transition-colors">{post.title}</h4>
+                        <p className="text-[14px] text-stone-500 font-medium italic">{post.author}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </main>
 
           <section className="max-w-5xl mx-auto px-6 pb-40 text-left">
@@ -242,7 +282,6 @@ function App() {
                                   <div className="w-10 h-[2px] bg-[#722F37]"></div>
                                   <span className="font-black">Author: {essay.author}</span>
                                 </span>
-                                
                                 <button onClick={() => handleEssayLike(essay.id)} className="flex items-center gap-2 text-stone-400 hover:text-red-500 transition-all active:scale-90 group">
                                     <Heart size={16} className={essayLikes[essay.id] > 0 ? "fill-red-500 text-red-500" : "group-hover:text-red-400"} />
                                     <span>{essayLikes[essay.id] || 0}</span>
@@ -258,27 +297,10 @@ function App() {
                                         </div>
                                     ))}
                                 </div>
-
                                 <div className="flex gap-2 p-2 bg-stone-50 rounded-lg">
-                                    <input 
-                                        type="text" placeholder="Name" 
-                                        className="w-20 bg-transparent border-r border-stone-200 px-2 text-[12px] font-black outline-none" 
-                                        value={essayCommentInputs[essay.id]?.author || ''}
-                                        onChange={e => setEssayCommentInputs(prev => ({ ...prev, [essay.id]: { ...prev[essay.id], author: e.target.value } }))}
-                                    />
-                                    <input 
-                                        type="text" placeholder="Leave a warm comment..." 
-                                        className="flex-1 bg-transparent px-2 text-[12px] font-medium outline-none" 
-                                        value={essayCommentInputs[essay.id]?.content || ''}
-                                        onChange={e => setEssayCommentInputs(prev => ({ ...prev, [essay.id]: { ...prev[essay.id], content: e.target.value } }))}
-                                        onKeyPress={e => e.key === 'Enter' && handleEssayCommentSubmit(essay.id)}
-                                    />
-                                    <button 
-                                        onClick={() => handleEssayCommentSubmit(essay.id)}
-                                        className="px-4 py-1 text-[11px] font-black text-[#722F37] uppercase tracking-tighter hover:opacity-50 transition-all"
-                                    >
-                                        Post
-                                    </button>
+                                    <input type="text" placeholder="Name" className="w-20 bg-transparent border-r border-stone-200 px-2 text-[12px] font-black outline-none" value={essayCommentInputs[essay.id]?.author || ''} onChange={e => setEssayCommentInputs(prev => ({ ...prev, [essay.id]: { ...prev[essay.id], author: e.target.value } }))} />
+                                    <input type="text" placeholder="Leave a warm comment..." className="flex-1 bg-transparent px-2 text-[12px] font-medium outline-none" value={essayCommentInputs[essay.id]?.content || ''} onChange={e => setEssayCommentInputs(prev => ({ ...prev, [essay.id]: { ...prev[essay.id], content: e.target.value } }))} onKeyPress={e => e.key === 'Enter' && handleEssayCommentSubmit(essay.id)} />
+                                    <button onClick={() => handleEssayCommentSubmit(essay.id)} className="px-4 py-1 text-[11px] font-black text-[#722F37] uppercase tracking-tighter hover:opacity-50 transition-all">Post</button>
                                 </div>
                             </div>
                         </article>
@@ -312,6 +334,7 @@ function App() {
         </div>
       )}
 
+      {/* --- 책 클릭 상세 모달 (별점/댓글 포함) --- */}
       {selectedPost && (
         <div className="fixed inset-0 bg-stone-900/90 backdrop-blur-sm flex items-center justify-center p-0 md:p-10 z-[300]" onClick={() => setSelectedPost(null)}>
           <div className="bg-white w-full max-w-6xl h-full md:h-[90vh] overflow-hidden flex flex-col md:flex-row shadow-2xl animate-in zoom-in duration-500" onClick={e => e.stopPropagation()}>
@@ -320,28 +343,43 @@ function App() {
             </div>
             <div className="h-[60%] md:h-full md:w-1/2 p-12 md:p-20 flex flex-col bg-white relative text-left">
               <button onClick={() => setSelectedPost(null)} className="absolute top-10 right-10 text-stone-400 hover:text-stone-900 transition-colors"><X/></button>
-              <h2 className="text-4xl font-black mb-4 leading-tight text-stone-900">{selectedPost.title}</h2>
-              <p className="text-2xl text-stone-400 font-light italic mb-12 border-b border-stone-200 pb-8 font-serif">Written by {selectedPost.author}</p>
-              <div className="flex-1 overflow-y-auto space-y-10 mb-12 pr-4 custom-scrollbar">
+              <h2 className="text-4xl font-black mb-2 leading-tight text-stone-900">{selectedPost.title}</h2>
+              <p className="text-xl text-stone-400 font-light italic mb-8 border-b border-stone-100 pb-4 font-serif">Written by {selectedPost.author}</p>
+              
+              <div className="flex-1 overflow-y-auto space-y-10 mb-8 pr-4 custom-scrollbar">
                 {comments.map(c => (
                   <div key={c.id} className="relative pl-8 border-l-2 border-[#722F37]/20">
                     <div className="absolute left-0 top-0 w-3 h-3 rounded-full bg-[#722F37] -translate-x-1/2"></div>
-                    <div className="flex items-center gap-4 mb-3">
-                      <span className="font-black text-[14px] tracking-tight text-stone-900 uppercase">{c.author}</span>
+                    <div className="flex items-center gap-4 mb-2">
+                      <span className="font-black text-[13px] tracking-tight text-stone-900 uppercase">{c.author}</span>
                       <div className="flex text-[10px] text-[#722F37]">{"★".repeat(c.rating || 5)}</div>
                     </div>
-                    <p className="text-stone-700 font-medium italic text-[17px] leading-relaxed">"{c.content}"</p>
+                    <p className="text-stone-700 font-medium italic text-[16px] leading-relaxed">"{c.content}"</p>
                   </div>
                 ))}
               </div>
-              <form onSubmit={async (e) => { e.preventDefault(); const {error}=await supabase.from('comments').insert([{post_id:selectedPost.id,...newComment}]); if(!error){ setNewComment({author:'',content:'',rating:5}); const {data}=await supabase.from('comments').select('*').eq('post_id',selectedPost.id).order('created_at',{ascending:true}); setComments(data||[]); } }} className="space-y-6 pt-8 border-t border-stone-200">
-                <div className="flex justify-between items-center px-1">
+
+              {/* 별점 및 댓글 입력 */}
+              <form onSubmit={async (e) => { 
+                e.preventDefault(); 
+                const {error} = await supabase.from('comments').insert([{post_id: selectedPost.id, ...newComment}]); 
+                if(!error){ 
+                  setNewComment({author:'', content:'', rating:5}); 
+                  const {data} = await supabase.from('comments').select('*').eq('post_id', selectedPost.id).order('created_at', {ascending:true}); 
+                  setComments(data || []); 
+                } 
+              }} className="space-y-6 pt-8 border-t border-stone-200">
+                <div className="flex justify-between items-center">
                   <input type="text" placeholder="Name" required value={newComment.author} onChange={e => setNewComment({...newComment, author: e.target.value})} className="bg-transparent font-black text-[13px] uppercase outline-none border-b-2 border-stone-200 w-32 py-1 focus:border-[#722F37] transition-colors" />
-                  <div className="flex gap-2">{[1,2,3,4,5].map(num => (<button key={num} type="button" onClick={() => setNewComment({...newComment, rating: num})} className={`text-xl ${newComment.rating >= num ? 'text-[#722F37]' : 'text-stone-200'}`}>★</button>))}</div>
+                  <div className="flex gap-2">
+                    {[1,2,3,4,5].map(num => (
+                      <button key={num} type="button" onClick={() => setNewComment({...newComment, rating: num})} className={`text-2xl transition-all active:scale-90 ${newComment.rating >= num ? 'text-[#722F37]' : 'text-stone-200'}`}>★</button>
+                    ))}
+                  </div>
                 </div>
                 <div className="flex gap-4">
-                  <textarea placeholder="Leave a trace..." required value={newComment.content} onChange={e => setNewComment({...newComment, content: e.target.value})} className="flex-1 p-5 bg-stone-50 rounded-sm text-[15px] h-20 outline-none resize-none font-medium border border-stone-200" />
-                  <button type="submit" className="bg-stone-900 text-stone-100 px-10 rounded-sm font-black text-[12px] tracking-widest uppercase hover:bg-black transition-colors">Post</button>
+                  <textarea placeholder="Leave a trace..." required value={newComment.content} onChange={e => setNewComment({...newComment, content: e.target.value})} className="flex-1 p-4 bg-stone-50 rounded-sm text-[15px] h-24 outline-none resize-none font-medium border border-stone-100 focus:bg-white transition-all" />
+                  <button type="submit" className="bg-stone-900 text-stone-100 px-8 rounded-sm font-black text-[12px] tracking-widest uppercase hover:bg-black transition-colors">Post</button>
                 </div>
               </form>
             </div>
@@ -349,6 +387,7 @@ function App() {
         </div>
       )}
 
+      {/* 일정 상세 모달 */}
       {selectedEvent && (
         <div className="fixed inset-0 bg-stone-900/95 flex items-center justify-center p-4 z-[500]" onClick={() => setSelectedEvent(null)}>
           <div className="bg-white rounded-sm w-full max-w-md shadow-2xl relative text-left overflow-hidden animate-in zoom-in duration-300" onClick={e => e.stopPropagation()}>
@@ -366,6 +405,7 @@ function App() {
         </div>
       )}
 
+      {/* 일정 등록 모달 */}
       {isEventModalOpen && (
         <div className="fixed inset-0 bg-stone-900/70 backdrop-blur-sm flex items-center justify-center p-4 z-[450]" onClick={() => setIsEventModalOpen(false)}>
           <div className="bg-white p-12 w-full max-w-lg shadow-2xl relative text-left rounded-sm" onClick={e => e.stopPropagation()}>
@@ -384,15 +424,28 @@ function App() {
         </div>
       )}
 
+      {/* 도서 등록 모달 (시즌 & 날짜 추가) */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-stone-900/70 backdrop-blur-sm flex items-center justify-center p-4 z-[400]" onClick={() => setIsModalOpen(false)}>
           <div className="bg-white p-16 w-full max-w-lg shadow-2xl relative text-left rounded-sm" onClick={e => e.stopPropagation()}>
             <button onClick={() => setIsModalOpen(false)} className="absolute top-10 right-10 text-stone-400"><X size={20}/></button>
             <h3 className="text-[14px] font-black tracking-[0.3em] text-stone-400 mb-12 text-center uppercase border-b-2 border-stone-100 pb-4">New Entry</h3>
-            <form onSubmit={async (e) => { e.preventDefault(); const {error}=await supabase.from('reviews').insert([formData]); if(!error){ setIsModalOpen(false); setFormData({title:'',author:'',image_url:'',region:'NY'}); fetchPosts(); } }} className="space-y-8">
+            <form onSubmit={async (e) => { e.preventDefault(); const {error}=await supabase.from('reviews').insert([formData]); if(!error){ setIsModalOpen(false); setFormData({title:'',author:'',image_url:'',region:'NY',meeting_date:'',season:'1'}); fetchPosts(); } }} className="space-y-8">
               <div className="flex gap-12 justify-center mb-8">
                 {['NY', 'NJ'].map(r => (<button key={r} type="button" onClick={() => setFormData({...formData, region: r})} className={`text-[13px] font-black tracking-widest transition-all ${formData.region === r ? 'text-[#722F37] border-b-4 border-[#722F37] pb-1' : 'text-stone-300'}`}>{r === 'NY' ? '🍎 NY' : '🌳 NJ'}</button>))}
               </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-black text-stone-400 uppercase tracking-widest">Season</label>
+                  <input type="number" placeholder="1" className="w-full bg-transparent border-b-2 border-stone-200 py-2 outline-none font-bold text-lg" value={formData.season} onChange={e => setFormData({...formData, season: e.target.value})} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-black text-stone-400 uppercase tracking-widest">Meeting Date</label>
+                  <input type="date" required className="w-full bg-transparent border-b-2 border-stone-200 py-2 outline-none font-bold" value={formData.meeting_date} onChange={e => setFormData({...formData, meeting_date: e.target.value})} />
+                </div>
+              </div>
+
               <input type="text" placeholder="Book Title" required className="w-full bg-transparent border-b-2 border-stone-200 py-3 outline-none font-black text-lg focus:border-stone-800" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
               <input type="text" placeholder="Author" required className="w-full bg-transparent border-b-2 border-stone-200 py-3 outline-none font-medium" value={formData.author} onChange={e => setFormData({...formData, author: e.target.value})} />
               <input type="text" placeholder="Cover Image URL" required className="w-full bg-transparent border-b-2 border-stone-200 py-3 outline-none font-medium" value={formData.image_url} onChange={e => setFormData({...formData, image_url: e.target.value})} />
@@ -402,15 +455,14 @@ function App() {
         </div>
       )}
 
+      {/* 푸터 */}
       <footer className="max-w-6xl mx-auto px-6 py-24 border-t border-stone-200 text-center font-['Noto_Serif_KR']">
         <div className="flex justify-center mb-10">
           <img src="/logo.png" className="w-12 h-12 object-contain grayscale opacity-20" alt="footer-logo" />
         </div>
         
         <div className="space-y-4 mb-12">
-          <p className="text-[12px] text-stone-600 font-black tracking-[0.2em] uppercase">
-            Copyright Disclaimer
-          </p>
+          <p className="text-[12px] text-stone-600 font-black tracking-[0.2em] uppercase">Copyright Disclaimer</p>
           <p className="text-[14px] text-stone-500 leading-relaxed max-w-2xl mx-auto font-light italic">
             This website is a non-profit community for book lovers. <br />
             All book covers and images are the property of their respective copyright owners. <br />

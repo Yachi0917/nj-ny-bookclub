@@ -123,7 +123,7 @@ function App() {
     <nav className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md border-b border-stone-200 z-[200] px-8 h-16 flex items-center justify-between font-['Noto_Serif_KR']">
       <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setActiveTab('HOME')}>
         <img src="/logo.png" className="w-8 h-8 object-contain" alt="mini-logo" />
-        <h1 className="text-base font-black tracking-tight text-stone-900 uppercase">NJ·NY <span className="text-[#722F37] font-light italic text-sm">Book club</span></h1>
+        <h1 className="text-base font-black tracking-tight text-stone-900 uppercase">NY·NJ <span className="text-[#722F37] font-light italic text-sm">Book club</span></h1>
       </div>
       <div className="flex gap-8 text-[13px] font-bold uppercase text-stone-500">
         {['HOME', 'REVIEW', 'LINKS'].map(tab => (

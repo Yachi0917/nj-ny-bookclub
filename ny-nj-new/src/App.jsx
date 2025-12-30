@@ -125,9 +125,9 @@ function App() {
         <h1 className="text-sm md:text-base font-black tracking-tight text-stone-900 uppercase">NY·NJ <span className="text-[#722F37] font-light italic text-xs md:text-sm">Book club</span></h1>
       </div>
       <div className="flex gap-4 md:gap-8 text-[11px] md:text-[13px] font-bold uppercase text-stone-500">
-        {['HOME', 'REVIEW', 'LINKS'].map(tab => (
+        {['HOME', 'CALENDAR', 'REVIEW', 'LINKS'].map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)} className={`hover:text-stone-900 transition-colors ${activeTab === tab ? 'text-[#722F37] border-b-2 border-[#722F37] pb-1' : ''}`}>
-            {tab === 'HOME' ? 'Library' : tab === 'REVIEW' ? 'Archive' : 'Form'}
+            {tab === 'HOME' ? 'Library' : tab === 'CALENDAR' ? 'Calendar' : tab === 'REVIEW' ? 'Archive' : 'Form'}
           </button>
         ))}
       </div>
@@ -154,6 +154,7 @@ function App() {
     <div className="min-h-screen bg-[#F9F7F2] text-stone-800 font-['Noto_Serif_KR'] selection:bg-stone-200 overflow-x-hidden">
       <NavBar />
 
+      {/* --- Library 탭 --- */}
       {activeTab === 'HOME' && (
         <div className="pt-24 animate-in fade-in duration-1000 text-center">
           <header className="flex flex-col items-center py-16 px-4">
@@ -193,26 +194,42 @@ function App() {
               );
             })}
           </main>
-
-          <section className="max-w-7xl mx-auto px-4 md:px-6 pb-40 text-left">
-              <h3 className="text-xl md:text-2xl font-bold italic text-stone-500 tracking-tight mb-12">02. Monthly Calendar</h3>
-              <div className="bg-white p-2 md:p-10 rounded-sm shadow-2xl border border-stone-100 overflow-hidden">
-                  <FullCalendar plugins={[dayGridPlugin, interactionPlugin]} initialView="dayGridMonth" events={events} locale="ko" height="auto" aspectRatio={window.innerWidth < 768 ? 0.8 : 1.35}
-                    dateClick={(arg) => { setNewEvent({...newEvent, start: arg.dateStr}); setIsEventModalOpen(true); }}
-                    eventClick={(info) => setSelectedEvent({ ...info.event.extendedProps, title: info.event.title, start: info.event.startStr })}
-                    eventContent={(eventInfo) => (
-                      <div className="flex flex-col w-full p-0.5 md:p-1 cursor-pointer overflow-hidden text-left h-full rounded shadow-sm" style={{ backgroundColor: eventInfo.event.backgroundColor }}>
-                        {eventInfo.event.extendedProps.image_url && <img src={eventInfo.event.extendedProps.image_url} className="w-full h-20 md:h-28 object-contain bg-white/10 rounded-sm mb-1" alt="event-thumb" />}
-                        <div className="text-[8px] md:text-[10px] font-bold truncate text-white px-1">{eventInfo.event.title}</div>
-                      </div>
-                    )}
-                  />
-              </div>
-          </section>
         </div>
       )}
 
-      {/* Archive 탭: 좌측 목록, 우측 본문(넓게), 제목 크기 최적화 */}
+      {/* --- Calendar 탭 --- */}
+      {activeTab === 'CALENDAR' && (
+        <div className="pt-32 max-w-7xl mx-auto px-4 md:px-6 pb-40 text-left animate-in fade-in duration-700">
+            <div className="flex justify-between items-center mb-12">
+              <div>
+                <h3 className="text-2xl md:text-3xl font-black text-stone-900 tracking-tight flex items-center gap-3">
+                  <CalendarIcon className="text-[#722F37]" /> MONTHLY CALENDAR
+                </h3>
+                <p className="text-stone-500 text-sm mt-1 italic">뉴욕·뉴저지 독서 모임 일정을 확인하세요</p>
+              </div>
+            </div>
+            <div className="bg-white p-2 md:p-10 rounded-sm shadow-2xl border border-stone-100 overflow-hidden">
+                <FullCalendar 
+                  plugins={[dayGridPlugin, interactionPlugin]} 
+                  initialView="dayGridMonth" 
+                  events={events} 
+                  locale="ko" 
+                  height="auto" 
+                  aspectRatio={window.innerWidth < 768 ? 0.8 : 1.35}
+                  dateClick={(arg) => { setNewEvent({...newEvent, start: arg.dateStr}); setIsEventModalOpen(true); }}
+                  eventClick={(info) => setSelectedEvent({ ...info.event.extendedProps, title: info.event.title, start: info.event.startStr })}
+                  eventContent={(eventInfo) => (
+                    <div className="flex flex-col w-full p-0.5 md:p-1 cursor-pointer overflow-hidden text-left h-full rounded shadow-sm" style={{ backgroundColor: eventInfo.event.backgroundColor }}>
+                      {eventInfo.event.extendedProps.image_url && <img src={eventInfo.event.extendedProps.image_url} className="w-full h-20 md:h-28 object-contain bg-white/10 rounded-sm mb-1" alt="event-thumb" />}
+                      <div className="text-[8px] md:text-[10px] font-bold truncate text-white px-1">{eventInfo.event.title}</div>
+                    </div>
+                  )}
+                />
+            </div>
+        </div>
+      )}
+
+      {/* --- Archive 탭 --- */}
       {activeTab === 'REVIEW' && (
         <div className="pt-24 max-w-[1500px] mx-auto px-4 md:px-8 pb-20 animate-in fade-in duration-700 min-h-screen flex flex-col font-['Noto_Serif_KR']">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -249,7 +266,7 @@ function App() {
                   <p className="text-stone-700 leading-[2.1] text-[15px] md:text-[17px] font-light whitespace-pre-wrap break-keep font-serif mb-20">{selectedEssay.content}</p>
                   <footer className="mt-16 pt-8 border-t border-stone-100">
                     <button onClick={() => handleEssayLike(selectedEssay.id)} className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-stone-50 text-stone-400 mb-8"><Heart size={16} className={essayLikes[selectedEssay.id] > 0 ? "fill-red-500 text-red-500" : ""} /> <span className="text-xs font-bold">{essayLikes[selectedEssay.id] || 0}</span></button>
-                    <div className="space-y-4 mb-8">{(essayComments[selectedEssay.id] || []).map(comm => (<div key={comm.id} className="bg-stone-50/50 p-3.5 rounded-sm border-l-2 border-stone-200"><span className="text-[11px] font-black text-stone-900 uppercase block mb-1">{comm.author}</span><p className="text-[12px] text-stone-600 italic">"{comm.content}"</p></div>))}</div>
+                    <div className="space-y-4 mb-8">{(essayComments[selectedEssay.id] || []).map(comm => (<div key={comm.id} className="bg-stone-50/50 p-3.5 rounded-sm border-l-2 border-stone-200 text-left"><span className="text-[11px] font-black text-stone-900 uppercase block mb-1">{comm.author}</span><p className="text-[12px] text-stone-600 font-medium leading-relaxed italic">"{comm.content}"</p></div>))}</div>
                     <div className="flex flex-col md:flex-row gap-2 p-2 bg-stone-100/50 rounded-lg">
                       <input type="text" placeholder="성함" className="w-full md:w-24 bg-white px-3 py-2 text-[11px] font-black outline-none border border-stone-200 rounded" value={essayCommentInputs[selectedEssay.id]?.author || ''} onChange={e => setEssayCommentInputs(prev => ({ ...prev, [selectedEssay.id]: { ...prev[selectedEssay.id], author: e.target.value } }))} />
                       <input type="text" placeholder="따뜻한 한마디..." className="flex-1 bg-white px-3 py-2 text-[11px] outline-none border border-stone-200 rounded" value={essayCommentInputs[selectedEssay.id]?.content || ''} onChange={e => setEssayCommentInputs(prev => ({ ...prev, [selectedEssay.id]: { ...prev[selectedEssay.id], content: e.target.value } }))} onKeyPress={e => e.key === 'Enter' && handleEssayCommentSubmit(selectedEssay.id)} />
@@ -257,13 +274,18 @@ function App() {
                     </div>
                   </footer>
                 </article>
-              ) : <div className="h-full flex flex-col items-center justify-center text-stone-200"><BookOpen size={40} className="mb-4 opacity-10" /><p className="italic text-xs">글을 선택해주세요.</p></div>}
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-stone-200">
+                   <BookOpen size={40} className="mb-4 opacity-10" />
+                   <p className="italic text-xs text-center">목록에서 글을 선택해주세요.</p>
+                </div>
+              )}
             </main>
           </div>
         </div>
       )}
 
-      {/* Links (Forms) 탭 완벽 복구 */}
+      {/* --- Forms (LINKS) 탭 --- */}
       {activeTab === 'LINKS' && (
         <div className="pt-40 max-w-2xl mx-auto px-6 pb-40 animate-in fade-in duration-1000 text-center">
             <h2 className="text-4xl font-black mb-4 tracking-tighter uppercase text-stone-900 text-center">Forms</h2>
@@ -283,33 +305,44 @@ function App() {
         </div>
       )}
 
-      {/* 도서 상세 모달 (별점 기능 복구 완료) */}
+      {/* --- 모달 시스템 --- */}
+      {isEssayModalOpen && (
+        <div className="fixed inset-0 bg-stone-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-[400]" onClick={() => setIsEssayModalOpen(false)}>
+          <div className="bg-white p-8 md:p-10 w-full max-w-2xl shadow-2xl relative text-left rounded-sm animate-in zoom-in duration-300" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setIsEssayModalOpen(false)} className="absolute top-6 right-6 text-stone-300 hover:text-stone-900"><X size={20}/></button>
+            <div className="text-center mb-8"><PenTool size={24} className="mx-auto text-[#722F37] mb-3" /><h3 className="text-lg font-black tracking-[0.2em] text-stone-800 uppercase">New Essay Entry</h3></div>
+            <form onSubmit={async (e) => { e.preventDefault(); const {error} = await supabase.from('essays').insert([essayForm]); if(!error){ alert("등록되었습니다."); setEssayForm({title:'', book_title:'', author:'', content:''}); setIsEssayModalOpen(false); fetchEssays(); } }} className="space-y-5">
+              <input type="text" placeholder="제목" required className="w-full bg-transparent border-b border-stone-200 py-2 outline-none focus:border-[#722F37] font-bold text-lg text-left" value={essayForm.title} onChange={e => setEssayForm({...essayForm, title: e.target.value})} />
+              <div className="grid grid-cols-2 gap-4"><input type="text" placeholder="도서명" required className="w-full bg-transparent border-b border-stone-200 py-2 outline-none text-sm font-medium text-left" value={essayForm.book_title} onChange={e => setEssayForm({...essayForm, book_title: e.target.value})} /><input type="text" placeholder="작성자" required className="w-full bg-transparent border-b border-stone-200 py-2 outline-none text-sm font-medium text-left" value={essayForm.author} onChange={e => setEssayForm({...essayForm, author: e.target.value})} /></div>
+              <textarea placeholder="생각을 기록해주세요..." required className="w-full bg-stone-50 p-5 h-[350px] outline-none border border-stone-100 focus:bg-white transition-all resize-none text-sm text-left leading-relaxed" value={essayForm.content} onChange={e => setEssayForm({...essayForm, content: e.target.value})} />
+              <button type="submit" className="w-full bg-stone-900 text-white py-4 font-bold tracking-widest uppercase hover:bg-[#722F37] transition-all text-xs">Register</button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {selectedPost && (
         <div className="fixed inset-0 bg-stone-900/90 backdrop-blur-sm flex items-center justify-center p-0 md:p-10 z-[300]" onClick={() => setSelectedPost(null)}>
-          <div className="bg-white w-full max-w-7xl h-full md:h-[90vh] overflow-hidden flex flex-col md:flex-row shadow-2xl animate-in zoom-in duration-500" onClick={e => e.stopPropagation()}>
+          <div className="bg-white w-full max-w-6xl h-full md:h-[90vh] overflow-hidden flex flex-col md:flex-row shadow-2xl animate-in zoom-in duration-500" onClick={e => e.stopPropagation()}>
             <div className="h-[45%] md:h-full md:w-1/2 bg-[#FBFBF9] flex flex-col items-center justify-center p-12 md:p-16 border-r border-stone-100 relative text-center">
                 <img src={selectedPost.image_url} className="h-[60vh] md:h-[55vh] object-contain shadow-[10px_20px_60px_rgba(0,0,0,0.25)] mb-12" alt="cover" />
             </div>
             <div className="h-[55%] md:h-full md:w-1/2 p-10 md:p-20 flex flex-col bg-white relative text-left">
               <button onClick={() => setSelectedPost(null)} className="absolute top-10 right-10 text-stone-300 hover:text-stone-900 transition-colors"><X size={24}/></button>
-              <h2 className="text-3xl md:text-4xl font-black mb-3 leading-tight">{selectedPost.title}</h2>
-              <p className="text-lg text-stone-400 font-light italic mb-8 border-b pb-4">Written by {selectedPost.author}</p>
-              
+              <h2 className="text-2xl md:text-3xl font-black mb-3 leading-tight">{selectedPost.title}</h2>
+              <p className="text-base text-stone-400 font-light italic mb-8 border-b pb-4">Written by {selectedPost.author}</p>
               <div className="flex-1 overflow-y-auto space-y-8 mb-8 pr-4 custom-scrollbar -webkit-overflow-scrolling-touch">
                 {comments.length > 0 ? comments.map(c => (
                   <div key={c.id} className="relative pl-8 border-l border-stone-100 text-left">
                     <div className="absolute left-[-1px] top-0 w-[1px] h-6 bg-[#722F37]"></div>
                     <div className="flex items-center gap-3 mb-2">
                         <span className="font-black text-[12px] tracking-tight text-stone-900 uppercase">{c.author}</span>
-                        {/* 복구된 별점 표시 */}
                         <div className="flex text-[8px] text-[#722F37] gap-0.5">{"★".repeat(c.rating || 5)}</div>
                     </div>
-                    <p className="text-stone-600 font-medium italic text-[15px] leading-relaxed break-keep">"{c.content}"</p>
+                    <p className="text-stone-600 font-medium italic text-[14px] md:text-[15px] leading-relaxed break-keep">"{c.content}"</p>
                   </div>
                 )) : <div className="h-full flex items-center justify-center text-stone-300 italic text-sm">첫 번째 소감을 남겨주세요.</div>}
               </div>
-
-              {/* 복구된 댓글 작성 폼 (별점 선택 버튼 포함) */}
               <form onSubmit={async (e) => { 
                 e.preventDefault(); 
                 const {error} = await supabase.from('comments').insert([{post_id: selectedPost.id, ...newComment}]); 
@@ -321,7 +354,6 @@ function App() {
               }} className="space-y-6 pt-8 border-t border-stone-100">
                 <div className="flex justify-between items-center">
                   <input type="text" placeholder="NAME" required value={newComment.author} onChange={e => setNewComment({...newComment, author: e.target.value})} className="bg-transparent font-black text-[11px] tracking-widest outline-none border-b border-stone-200 w-24 py-2 focus:border-[#722F37]" />
-                  {/* 복구된 별점 클릭 선택 버튼 */}
                   <div className="flex gap-1">
                     {[1,2,3,4,5].map(num => (
                       <button key={num} type="button" onClick={() => setNewComment({...newComment, rating: num})} className={`text-xl transition-all hover:scale-110 ${newComment.rating >= num ? 'text-[#722F37]' : 'text-stone-200'}`}>★</button>
@@ -338,26 +370,10 @@ function App() {
         </div>
       )}
 
-      {/* --- 기타 모달 시스템: 원본 유지 --- */}
-      {isEssayModalOpen && (
-        <div className="fixed inset-0 bg-stone-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-[400]" onClick={() => setIsEssayModalOpen(false)}>
-          <div className="bg-white p-8 md:p-10 w-full max-w-2xl shadow-2xl relative text-left rounded-sm animate-in zoom-in duration-300" onClick={e => e.stopPropagation()}>
-            <button onClick={() => setIsEssayModalOpen(false)} className="absolute top-6 right-6 text-stone-300 hover:text-stone-900"><X size={20}/></button>
-            <div className="text-center mb-8"><PenTool size={24} className="mx-auto text-[#722F37] mb-3" /><h3 className="text-lg font-black tracking-[0.2em] text-stone-800 uppercase">New Essay Entry</h3></div>
-            <form onSubmit={async (e) => { e.preventDefault(); const {error} = await supabase.from('essays').insert([essayForm]); if(!error){ alert("등록되었습니다."); setEssayForm({title:'', book_title:'', author:'', content:''}); setIsEssayModalOpen(false); fetchEssays(); } }} className="space-y-5">
-              <input type="text" placeholder="제목" required className="w-full bg-transparent border-b border-stone-200 py-2 outline-none font-bold text-lg text-left" value={essayForm.title} onChange={e => setEssayForm({...essayForm, title: e.target.value})} />
-              <div className="grid grid-cols-2 gap-4"><input type="text" placeholder="도서명" required className="w-full bg-transparent border-b border-stone-200 py-2 outline-none text-sm font-medium text-left" value={essayForm.book_title} onChange={e => setEssayForm({...essayForm, book_title: e.target.value})} /><input type="text" placeholder="작성자" required className="w-full bg-transparent border-b border-stone-200 py-2 outline-none text-sm font-medium text-left" value={essayForm.author} onChange={e => setEssayForm({...essayForm, author: e.target.value})} /></div>
-              <textarea placeholder="깊은 생각을 남겨주세요..." required className="w-full bg-stone-50 p-5 h-[350px] outline-none border border-stone-100 focus:bg-white resize-none text-sm text-left leading-relaxed" value={essayForm.content} onChange={e => setEssayForm({...essayForm, content: e.target.value})} />
-              <button type="submit" className="w-full bg-stone-900 text-white py-4 font-bold tracking-widest uppercase hover:bg-[#722F37] text-xs">Publish Essay</button>
-            </form>
-          </div>
-        </div>
-      )}
-
       {selectedEvent && (
         <div className="fixed inset-0 bg-stone-900/95 flex items-center justify-center p-4 z-[500]" onClick={() => setSelectedEvent(null)}>
           <div className="bg-white rounded-sm w-full max-w-md shadow-2xl relative text-left overflow-hidden animate-in zoom-in duration-300" onClick={e => e.stopPropagation()}>
-            <button onClick={() => setSelectedEvent(null)} className="absolute top-4 right-4 p-2 text-white bg-black/40 rounded-full hover:bg-black/60 z-10"><X size={18}/></button>
+            <button onClick={() => setSelectedEvent(null)} className="absolute top-4 right-4 p-2 text-white bg-black/40 rounded-full hover:bg-black/60 transition-colors z-10"><X size={18}/></button>
             {selectedEvent.image_url && <img src={selectedEvent.image_url} className="w-full h-auto max-h-[60vh] object-contain bg-stone-100 shadow-inner" alt="event-cover" />}
             <div className="p-10 text-left">
                 <span className="text-[11px] font-black tracking-widest text-[#722F37] mb-2 block uppercase italic border-b border-[#722F37]/10 pb-2">{selectedEvent.region} — {selectedEvent.start}</span>
@@ -375,11 +391,8 @@ function App() {
             <h3 className="text-[12px] font-black tracking-[0.2em] text-stone-400 mb-8 text-center uppercase border-b border-stone-100 pb-4 text-center">New Entry</h3>
             <form onSubmit={async (e) => { e.preventDefault(); const {error}=await supabase.from('reviews').insert([formData]); if(!error){ setIsModalOpen(false); setFormData({title:'',author:'',image_url:'',region:'NY',meeting_date:'',season:'1'}); fetchPosts(); } }} className="space-y-6">
               <div className="flex gap-8 justify-center mb-6">{['NY', 'NJ'].map(r => (<button key={r} type="button" onClick={() => setFormData({...formData, region: r})} className={`text-[12px] font-black tracking-widest transition-all ${formData.region === r ? 'text-[#722F37] border-b-2 border-[#722F37] pb-1' : 'text-stone-300'}`}>{r}</button>))}</div>
-              <div className="grid grid-cols-2 gap-4"><div className="space-y-1 text-left"><label className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Season</label><input type="number" placeholder="1" className="w-full bg-transparent border-b border-stone-200 py-1 outline-none font-bold text-base" value={formData.season} onChange={e => setFormData({...formData, season: e.target.value})} /></div><div className="space-y-1 text-left"><label className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Meeting Date</label><input type="date" required className="w-full bg-transparent border-b border-stone-200 py-1 outline-none font-bold text-sm" value={formData.meeting_date} onChange={e => setFormData({...formData, meeting_date: e.target.value})} /></div></div>
-              <input type="text" placeholder="Book Title" required className="w-full bg-transparent border-b border-stone-200 py-2 outline-none font-black text-base text-left" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
-              <input type="text" placeholder="Author" required className="w-full bg-transparent border-b border-stone-200 py-2 outline-none font-medium text-sm text-left" value={formData.author} onChange={e => setFormData({...formData, author: e.target.value})} />
-              <input type="text" placeholder="Cover Image URL" required className="w-full bg-transparent border-b border-stone-200 py-2 outline-none font-medium text-sm text-left" value={formData.image_url} onChange={e => setFormData({...formData, image_url: e.target.value})} />
-              <button type="submit" className="w-full bg-stone-900 text-white py-4 text-[12px] font-black tracking-widest uppercase hover:bg-stone-800">Register</button>
+              <div className="grid grid-cols-2 gap-4"><div className="space-y-1 text-left"><label className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Season</label><input type="number" placeholder="1" className="w-full bg-transparent border-b border-stone-200 py-1 outline-none font-bold text-base text-left" value={formData.season} onChange={e => setFormData({...formData, season: e.target.value})} /></div><div className="space-y-1 text-left"><label className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Meeting Date</label><input type="date" required className="w-full bg-transparent border-b border-stone-200 py-1 outline-none font-bold text-sm text-left" value={formData.meeting_date} onChange={e => setFormData({...formData, meeting_date: e.target.value})} /></div></div>
+              <input type="text" placeholder="Book Title" required className="w-full bg-transparent border-b border-stone-200 py-2 outline-none font-black text-base text-left" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} /><input type="text" placeholder="Author" required className="w-full bg-transparent border-b border-stone-200 py-2 outline-none font-medium text-sm text-left" value={formData.author} onChange={e => setFormData({...formData, author: e.target.value})} /><input type="text" placeholder="Cover Image URL" required className="w-full bg-transparent border-b border-stone-200 py-2 outline-none font-medium text-sm text-left" value={formData.image_url} onChange={e => setFormData({...formData, image_url: e.target.value})} /><button type="submit" className="w-full bg-stone-900 text-white py-4 text-[12px] font-black tracking-widest uppercase hover:bg-stone-800">Register</button>
             </form>
           </div>
         </div>
@@ -392,21 +405,18 @@ function App() {
             <h3 className="text-[12px] font-black tracking-[0.2em] text-stone-400 mb-8 text-center uppercase border-b border-stone-100 pb-4 text-center">Schedule Entry</h3>
             <form onSubmit={async (e) => { e.preventDefault(); const {error}=await supabase.from('events').insert([newEvent]); if(!error){ setIsEventModalOpen(false); setNewEvent({title:'',start:'',description:'',region:'NY',image_url:''}); fetchEvents(); } }} className="space-y-6">
               <div className="flex gap-8 justify-center mb-6">{['NY', 'NJ'].map(r => (<button key={r} type="button" onClick={() => setNewEvent({...newEvent, region: r})} className={`text-[12px] font-black tracking-widest transition-all ${newEvent.region === r ? 'text-[#722F37] border-b-2 border-[#722F37] pb-1' : 'text-stone-300'}`}>{r}</button>))}</div>
-              <input type="text" placeholder="Title" required className="w-full bg-transparent border-b border-stone-200 py-2 outline-none font-black text-base text-left" value={newEvent.title} onChange={e => setNewEvent({...newEvent, title: e.target.value})} />
-              <textarea placeholder="Description" className="w-full bg-[#FBFBF9] p-4 h-32 outline-none font-medium text-[14px] border border-stone-200 text-left" value={newEvent.description} onChange={e => setNewEvent({...newEvent, description: e.target.value})} />
-              <input type="text" placeholder="Image Link" className="w-full bg-transparent border-b border-stone-200 py-2 outline-none font-medium text-sm text-left" value={newEvent.image_url} onChange={e => setNewEvent({...newEvent, image_url: e.target.value})} />
-              <button type="submit" className="w-full bg-stone-900 text-white py-4 text-[12px] font-black tracking-widest uppercase hover:bg-stone-800">Save</button>
+              <input type="text" placeholder="Title" required className="w-full bg-transparent border-b border-stone-200 py-2 outline-none font-black text-base text-left" value={newEvent.title} onChange={e => setNewEvent({...newEvent, title: e.target.value})} /><textarea placeholder="Description" className="w-full bg-[#FBFBF9] p-4 h-32 outline-none font-medium text-[14px] border border-stone-200 text-left" value={newEvent.description} onChange={e => setNewEvent({...newEvent, description: e.target.value})} /><input type="text" placeholder="Image Link" className="w-full bg-transparent border-b border-stone-200 py-2 outline-none font-medium text-sm text-left" value={newEvent.image_url} onChange={e => setNewEvent({...newEvent, image_url: e.target.value})} /><button type="submit" className="w-full bg-stone-900 text-white py-4 text-[12px] font-black tracking-widest uppercase hover:bg-stone-800">Save</button>
             </form>
           </div>
         </div>
       )}
 
-      {/* Footer 시스템: 원본 유지 */}
+      {/* --- Footer --- */}
       <footer className="max-w-7xl mx-auto px-6 py-24 border-t border-stone-200 text-center font-['Noto_Serif_KR']">
         <div className="flex justify-center mb-10"><img src="/logo.png" className="w-12 h-12 object-contain grayscale opacity-20" alt="footer-logo" /></div>
         <div className="space-y-4 mb-12 text-center">
           <p className="text-[12px] text-stone-600 font-black tracking-[0.2em] uppercase text-center">Copyright Disclaimer</p>
-          <p className="text-[13px] md:text-[14px] text-stone-500 leading-relaxed max-w-2xl mx-auto font-light italic text-center text-center">
+          <p className="text-[13px] md:text-[14px] text-stone-500 leading-relaxed max-w-2xl mx-auto font-light italic text-center">
             This website is a non-profit community for book lovers. <br />
             All book covers and images are the property of their respective copyright owners. <br />
             We will <span className="text-stone-800 font-bold underline decoration-stone-200">promptly remove</span> any content upon request from the original holders.
@@ -416,7 +426,7 @@ function App() {
             <a href="mailto:yaboo99mung@gmail.com" className="text-[13px] text-[#722F37] font-black">yaboo99mung@gmail.com</a>
           </div>
         </div>
-        <p className="text-[9px] tracking-[0.4em] text-stone-300 uppercase font-black text-center text-center">© 2025 NJ·NY Book Club. All rights reserved.</p>
+        <p className="text-[9px] tracking-[0.4em] text-stone-300 uppercase font-black text-center">© 2025 NJ·NY Book Club. All rights reserved.</p>
       </footer>
 
       <style dangerouslySetInnerHTML={{ __html: `

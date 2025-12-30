@@ -14,25 +14,21 @@ function App() {
   const [passwordInput, setPasswordInput] = useState("");
   const CORRECT_PASSWORD = "5557";
 
-  // 상태 관리
   const [posts, setPosts] = useState([]);
   const [essays, setEssays] = useState([]);
   const [events, setEvents] = useState([]);
   const [comments, setComments] = useState([]);
   const [filter, setFilter] = useState('ALL');
 
-  // 독후감(Archive) 관련 상태
   const [essayComments, setEssayComments] = useState({});
   const [essayLikes, setEssayLikes] = useState({});
   const [essayCommentInputs, setEssayCommentInputs] = useState({});
   
-  // 모달 제어 상태
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
-  // 폼 데이터 상태 (시즌, 날짜 포함)
   const [formData, setFormData] = useState({ title: '', author: '', image_url: '', region: 'NY', meeting_date: '', season: '1' });
   const [newComment, setNewComment] = useState({ author: '', content: '', rating: 5 });
   const [essayForm, setEssayForm] = useState({ title: '', book_title: '', author: '', content: '' });
@@ -46,17 +42,15 @@ function App() {
     }
   }, [isLoggedIn]);
 
-  // 01. Library 데이터 가져오기 (시즌 역순 -> 날짜 역순 정렬)
   async function fetchPosts() {
     const { data } = await supabase
       .from('reviews')
       .select('*')
-      .order('season', { ascending: false })
-      .order('meeting_date', { ascending: false });
+      .order('season', { ascending: true })
+      .order('meeting_date', { ascending: true });
     if (data) setPosts(data);
   }
 
-  // 02. Archive(에세이) 데이터 가져오기
   async function fetchEssays() {
     const { data } = await supabase.from('essays').select('*').order('created_at', { ascending: false });
     if (data) {
@@ -65,7 +59,6 @@ function App() {
     }
   }
 
-  // 에세이 부가 정보(댓글, 좋아요) 가져오기
   async function fetchEssayExtras(essayId) {
     const { data: cData } = await supabase.from('essay_comments').select('*').eq('essay_id', essayId).order('created_at', { ascending: true });
     setEssayComments(prev => ({ ...prev, [essayId]: cData || [] }));
@@ -73,13 +66,11 @@ function App() {
     setEssayLikes(prev => ({ ...prev, [essayId]: count || 0 }));
   }
 
-  // 에세이 좋아요 처리
   async function handleEssayLike(essayId) {
     const { error } = await supabase.from('essay_likes').insert([{ essay_id: essayId }]);
     if (!error) fetchEssayExtras(essayId);
   }
 
-  // 에세이 댓글 전송
   async function handleEssayCommentSubmit(essayId) {
     const input = essayCommentInputs[essayId];
     if (!input?.author || !input?.content) {
@@ -97,7 +88,6 @@ function App() {
     }
   }
 
-  // 캘린더 이벤트 가져오기
   async function fetchEvents() {
     const { data } = await supabase.from('events').select('*');
     if (data) {
@@ -118,6 +108,34 @@ function App() {
     if (passwordInput === CORRECT_PASSWORD) setIsLoggedIn(true);
     else { alert("비밀번호를 확인해주세요."); setPasswordInput(""); }
   };
+
+  const BookCard = ({ post }) => (
+    <div 
+      onClick={async () => { 
+        setSelectedPost(post); 
+        const {data} = await supabase.from('comments').select('*').eq('post_id', post.id).order('created_at', { ascending: true }); 
+        setComments(data || []); 
+      }} 
+      className="group cursor-pointer"
+    >
+      <div className="relative aspect-[2/3] mb-4 overflow-hidden shadow-lg border border-stone-200 bg-white">
+        <img src={post.image_url} className="w-full h-full object-cover grayscale-[10%] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700" alt="cover" />
+        <div className="absolute top-2 left-2 flex flex-col gap-1">
+          {/* NY/NJ 텍스트 복구 */}
+          <span className={`px-2 py-1 text-[9px] font-black text-white rounded-sm shadow-md flex items-center gap-1 ${post.region === 'NY' ? 'bg-[#722F37]' : 'bg-[#4A5D4E]'}`}>
+            {post.region === 'NY' ? '🍎 NY' : '🌳 NJ'}
+          </span>
+          {post.meeting_date && (
+            <span className="bg-white/95 px-1.5 py-0.5 text-[8px] font-bold text-stone-800 rounded-sm shadow-sm border border-stone-100">
+              {post.meeting_date}
+            </span>
+          )}
+        </div>
+      </div>
+      <h4 className="font-bold text-[15px] mb-0.5 leading-tight text-stone-900 group-hover:text-[#722F37] transition-colors line-clamp-1 tracking-tight">{post.title}</h4>
+      <p className="text-[12px] text-stone-400 font-medium italic">{post.author}</p>
+    </div>
+  );
 
   const NavBar = () => (
     <nav className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md border-b border-stone-200 z-[200] px-8 h-16 flex items-center justify-between font-['Noto_Serif_KR']">
@@ -181,65 +199,59 @@ function App() {
             </div>
           </header>
 
-          <main className="max-w-6xl mx-auto px-6 mb-40 text-left">
+          <main className="max-w-7xl mx-auto px-6 mb-40 text-left">
             <div className="flex justify-between items-center mb-16">
               <h3 className="text-2xl font-bold italic text-stone-500 tracking-tight">01. Our Library</h3>
               <button onClick={() => setIsModalOpen(true)} className="text-[12px] font-bold tracking-wider text-[#722F37] uppercase border-2 border-[#722F37]/20 px-6 py-2 rounded-full hover:bg-[#722F37] hover:text-white transition-all">+ Register</button>
             </div>
 
-            {/* 시즌별 그룹화 렌더링 */}
-            {[...new Set(posts.map(p => p.season))].sort((a, b) => b - a).map(season => {
-              const seasonPosts = posts.filter(p => p.season === season && (filter === 'ALL' || p.region === filter));
-              if (seasonPosts.length === 0) return null;
+            {[...new Set(posts.map(p => p.season))].sort((a, b) => a - b).map(season => {
+              const seasonPosts = posts.filter(p => p.season === season);
+              const nyPosts = seasonPosts.filter(p => p.region === 'NY');
+              const njPosts = seasonPosts.filter(p => p.region === 'NJ');
+              if ((filter === 'NY' && nyPosts.length === 0) || (filter === 'NJ' && njPosts.length === 0)) return null;
 
               return (
-                <div key={season} className="mb-24 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                  <div className="flex items-center gap-4 mb-10">
-                    <h4 className="text-xl font-black text-stone-900 uppercase tracking-tighter italic">Season {season}</h4>
+                <div key={season} className="mb-32 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                  <div className="flex items-center gap-4 mb-12">
+                    <h4 className="text-2xl font-black text-stone-900 uppercase tracking-tighter italic">Season {season}</h4>
                     <div className="flex-1 h-[1px] bg-stone-200"></div>
                   </div>
                   
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-12 md:gap-16">
-                    {seasonPosts.map(post => (
-                      <div key={post.id} 
-                        onClick={async () => { 
-                          setSelectedPost(post); 
-                          const {data} = await supabase.from('comments').select('*').eq('post_id', post.id).order('created_at', { ascending: true }); 
-                          setComments(data || []); 
-                        }} 
-                        className="group cursor-pointer"
-                      >
-                        <div className="relative aspect-[2/3] mb-5 overflow-hidden shadow-xl border border-stone-200 bg-white">
-                          <img src={post.image_url} className="w-full h-full object-cover grayscale-[10%] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700" alt="cover" />
-                          <div className="absolute top-3 left-3 flex flex-col gap-1">
-                            <span className={`px-2 py-1 text-[10px] font-black text-white rounded-sm shadow-md ${post.region === 'NY' ? 'bg-[#722F37]' : 'bg-[#4A5D4E]'}`}>
-                              {post.region === 'NY' ? '🍎 NY' : '🌳 NJ'}
-                            </span>
-                            {post.meeting_date && (
-                              <span className="bg-white/90 px-2 py-1 text-[9px] font-bold text-stone-800 rounded-sm shadow-sm">
-                                {post.meeting_date}
-                              </span>
-                            )}
-                          </div>
+                  {filter === 'ALL' ? (
+                    /* COLLECTION 모드: 가로 폭을 충분히 활용하도록 gap과 컨테이너 조정 */
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
+                      <div className="space-y-8">
+                        <h5 className="text-[10px] font-black tracking-[0.2em] text-[#722F37] uppercase bg-[#722F37]/5 w-fit px-3 py-1.5 rounded-sm">🍎 New York</h5>
+                        <div className="grid grid-cols-3 gap-6 md:gap-8">
+                          {nyPosts.map(post => <BookCard key={post.id} post={post} />)}
                         </div>
-                        <h4 className="font-bold text-lg mb-1 leading-tight text-stone-900 group-hover:text-[#722F37] transition-colors">{post.title}</h4>
-                        <p className="text-[14px] text-stone-500 font-medium italic">{post.author}</p>
                       </div>
-                    ))}
-                  </div>
+                      <div className="space-y-8 lg:border-l lg:pl-16 border-stone-100">
+                        <h5 className="text-[10px] font-black tracking-[0.2em] text-[#4A5D4E] uppercase bg-[#4A5D4E]/5 w-fit px-3 py-1.5 rounded-sm">🌳 New Jersey</h5>
+                        <div className="grid grid-cols-3 gap-6 md:gap-8">
+                          {njPosts.map(post => <BookCard key={post.id} post={post} />)}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-10">
+                      {(filter === 'NY' ? nyPosts : njPosts).map(post => <BookCard key={post.id} post={post} />)}
+                    </div>
+                  )}
                 </div>
               );
             })}
           </main>
 
-          <section className="max-w-5xl mx-auto px-6 pb-40 text-left">
-             <h3 className="text-2xl font-bold italic text-stone-500 tracking-tight mb-12">02. Monthly Calendar</h3>
-             <div className="bg-white p-4 md:p-10 rounded-sm shadow-2xl border border-stone-100">
-                <FullCalendar plugins={[dayGridPlugin, interactionPlugin]} initialView="dayGridMonth" events={events} locale="ko" height="auto"
+          <section className="max-w-7xl mx-auto px-6 pb-40 text-left">
+              <h3 className="text-2xl font-bold italic text-stone-500 tracking-tight mb-12">02. Monthly Calendar</h3>
+              <div className="bg-white p-4 md:p-10 rounded-sm shadow-2xl border border-stone-100">
+                 <FullCalendar plugins={[dayGridPlugin, interactionPlugin]} initialView="dayGridMonth" events={events} locale="ko" height="auto"
                     dateClick={(arg) => { setNewEvent({...newEvent, start: arg.dateStr}); setIsEventModalOpen(true); }}
                     eventClick={(info) => setSelectedEvent({ ...info.event.extendedProps, title: info.event.title, start: info.event.startStr })}
                     eventContent={(eventInfo) => (
-                      <div className="flex flex-col w-full p-1 cursor-pointer overflow-hidden">
+                      <div className="flex flex-col w-full p-1 cursor-pointer overflow-hidden text-left">
                         {eventInfo.event.extendedProps.image_url && (
                             <img src={eventInfo.event.extendedProps.image_url} className="w-full h-12 object-cover rounded-sm mb-1 shadow-sm" alt="event-thumb" />
                         )}
@@ -249,11 +261,12 @@ function App() {
                       </div>
                     )}
                 />
-             </div>
+              </div>
           </section>
         </div>
       )}
 
+      {/* --- Archive & Links 생략 --- */}
       {activeTab === 'REVIEW' && (
         <div className="pt-32 max-w-6xl mx-auto px-6 pb-40 animate-in slide-in-from-bottom-4 duration-1000 text-left">
           <div className="grid lg:grid-cols-5 gap-20">
@@ -276,7 +289,6 @@ function App() {
                             <span className="text-[12px] font-bold text-[#722F37] tracking-widest block mb-4 italic uppercase">Reference: {essay.book_title}</span>
                             <h4 className="text-2xl md:text-3xl font-black mb-8 text-stone-900 leading-tight">{essay.title}</h4>
                             <p className="text-stone-700 leading-[2.1] text-[17px] font-light mb-12 whitespace-pre-wrap">{essay.content}</p>
-                            
                             <div className="flex justify-between items-center text-[13px] font-bold tracking-tight py-8 border-y border-stone-100">
                                 <span className="flex items-center gap-4 text-stone-800">
                                   <div className="w-10 h-[2px] bg-[#722F37]"></div>
@@ -287,7 +299,6 @@ function App() {
                                     <span>{essayLikes[essay.id] || 0}</span>
                                 </button>
                             </div>
-
                             <div className="mt-8 pt-6">
                                 <div className="space-y-4 mb-8">
                                     {(essayComments[essay.id] || []).map(comm => (
@@ -334,32 +345,49 @@ function App() {
         </div>
       )}
 
-      {/* --- 책 클릭 상세 모달 (별점/댓글 포함) --- */}
+      {/* --- 상세 모달 --- */}
       {selectedPost && (
         <div className="fixed inset-0 bg-stone-900/90 backdrop-blur-sm flex items-center justify-center p-0 md:p-10 z-[300]" onClick={() => setSelectedPost(null)}>
           <div className="bg-white w-full max-w-6xl h-full md:h-[90vh] overflow-hidden flex flex-col md:flex-row shadow-2xl animate-in zoom-in duration-500" onClick={e => e.stopPropagation()}>
-            <div className="h-[40%] md:h-full md:w-1/2 bg-stone-100 flex items-center justify-center p-16 border-r border-stone-200">
-              <img src={selectedPost.image_url} className="h-full object-contain shadow-[20px_20px_50px_rgba(0,0,0,0.15)]" alt="cover" />
-            </div>
-            <div className="h-[60%] md:h-full md:w-1/2 p-12 md:p-20 flex flex-col bg-white relative text-left">
-              <button onClick={() => setSelectedPost(null)} className="absolute top-10 right-10 text-stone-400 hover:text-stone-900 transition-colors"><X/></button>
-              <h2 className="text-4xl font-black mb-2 leading-tight text-stone-900">{selectedPost.title}</h2>
-              <p className="text-xl text-stone-400 font-light italic mb-8 border-b border-stone-100 pb-4 font-serif">Written by {selectedPost.author}</p>
-              
-              <div className="flex-1 overflow-y-auto space-y-10 mb-8 pr-4 custom-scrollbar">
-                {comments.map(c => (
-                  <div key={c.id} className="relative pl-8 border-l-2 border-[#722F37]/20">
-                    <div className="absolute left-0 top-0 w-3 h-3 rounded-full bg-[#722F37] -translate-x-1/2"></div>
-                    <div className="flex items-center gap-4 mb-2">
-                      <span className="font-black text-[13px] tracking-tight text-stone-900 uppercase">{c.author}</span>
-                      <div className="flex text-[10px] text-[#722F37]">{"★".repeat(c.rating || 5)}</div>
-                    </div>
-                    <p className="text-stone-700 font-medium italic text-[16px] leading-relaxed">"{c.content}"</p>
+            <div className="h-[45%] md:h-full md:w-1/2 bg-[#FBFBF9] flex flex-col items-center justify-center p-12 md:p-16 border-r border-stone-100 relative text-center">
+              <div className="relative group w-full flex flex-col items-center">
+                <img src={selectedPost.image_url} className="h-[60vh] md:h-[55vh] object-contain shadow-[10px_20px_60px_rgba(0,0,0,0.25)] mb-12 transition-transform duration-700 group-hover:scale-[1.02]" alt="cover" />
+                <div className="flex flex-col items-center animate-in fade-in slide-in-from-top-2 duration-1000">
+                  <div className="flex items-center gap-4 mb-3">
+                    <span className={`text-[10px] font-black tracking-[0.2em] px-3 py-1.5 border ${selectedPost.region === 'NY' ? 'border-[#722F37] text-[#722F37]' : 'border-[#4A5D4E] text-[#4A5D4E]'}`}>{selectedPost.region === 'NY' ? 'NEW YORK' : 'NEW JERSEY'}</span>
+                    <div className="w-[1px] h-3 bg-stone-300"></div>
+                    <span className="text-[10px] font-black tracking-[0.2em] text-stone-400">SEASON {selectedPost.season}</span>
                   </div>
-                ))}
+                  {selectedPost.meeting_date && (
+                    <div className="flex flex-col items-center">
+                      {/* 날짜 폰트를 디자인에 맞춰 개선 (영문 월/일 스타일로 가독성 있게) */}
+                      <p className="text-[16px] font-black tracking-[0.1em] text-stone-800 uppercase font-sans">
+                        {new Date(selectedPost.meeting_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </p>
+                      <div className="w-8 h-[2px] bg-[#722F37] mt-3 opacity-30"></div>
+                    </div>
+                  )}
+                </div>
               </div>
-
-              {/* 별점 및 댓글 입력 */}
+            </div>
+            <div className="h-[55%] md:h-full md:w-1/2 p-10 md:p-20 flex flex-col bg-white relative text-left">
+              <button onClick={() => setSelectedPost(null)} className="absolute top-10 right-10 text-stone-300 hover:text-stone-900 transition-colors"><X size={24} strokeWidth={1.5} /></button>
+              <div className="mb-10">
+                <h2 className="text-3xl md:text-4xl font-black mb-3 leading-tight text-stone-900 tracking-tight">{selectedPost.title}</h2>
+                <p className="text-lg text-stone-400 font-light italic font-serif">Written by {selectedPost.author}</p>
+              </div>
+              <div className="flex-1 overflow-y-auto space-y-10 mb-8 pr-4 custom-scrollbar">
+                {comments.length > 0 ? comments.map(c => (
+                  <div key={c.id} className="relative pl-8 border-l border-stone-100">
+                    <div className="absolute left-[-1px] top-0 w-[1px] h-6 bg-[#722F37]"></div>
+                    <div className="flex items-center gap-4 mb-2">
+                      <span className="font-black text-[12px] tracking-tight text-stone-900 uppercase">{c.author}</span>
+                      <div className="flex text-[8px] text-[#722F37] gap-0.5">{"★".repeat(c.rating || 5)}</div>
+                    </div>
+                    <p className="text-stone-600 font-medium italic text-[15px] leading-relaxed">"{c.content}"</p>
+                  </div>
+                )) : <div className="h-full flex items-center justify-center text-stone-300 italic text-sm">첫 번째 소감을 남겨주세요.</div>}
+              </div>
               <form onSubmit={async (e) => { 
                 e.preventDefault(); 
                 const {error} = await supabase.from('comments').insert([{post_id: selectedPost.id, ...newComment}]); 
@@ -368,18 +396,18 @@ function App() {
                   const {data} = await supabase.from('comments').select('*').eq('post_id', selectedPost.id).order('created_at', {ascending:true}); 
                   setComments(data || []); 
                 } 
-              }} className="space-y-6 pt-8 border-t border-stone-200">
+              }} className="space-y-6 pt-8 border-t border-stone-100">
                 <div className="flex justify-between items-center">
-                  <input type="text" placeholder="Name" required value={newComment.author} onChange={e => setNewComment({...newComment, author: e.target.value})} className="bg-transparent font-black text-[13px] uppercase outline-none border-b-2 border-stone-200 w-32 py-1 focus:border-[#722F37] transition-colors" />
-                  <div className="flex gap-2">
+                  <input type="text" placeholder="NAME" required value={newComment.author} onChange={e => setNewComment({...newComment, author: e.target.value})} className="bg-transparent font-black text-[11px] tracking-widest outline-none border-b border-stone-200 w-24 py-2 focus:border-[#722F37] transition-colors" />
+                  <div className="flex gap-1">
                     {[1,2,3,4,5].map(num => (
-                      <button key={num} type="button" onClick={() => setNewComment({...newComment, rating: num})} className={`text-2xl transition-all active:scale-90 ${newComment.rating >= num ? 'text-[#722F37]' : 'text-stone-200'}`}>★</button>
+                      <button key={num} type="button" onClick={() => setNewComment({...newComment, rating: num})} className={`text-xl transition-all hover:scale-110 ${newComment.rating >= num ? 'text-[#722F37]' : 'text-stone-200'}`}>★</button>
                     ))}
                   </div>
                 </div>
                 <div className="flex gap-4">
-                  <textarea placeholder="Leave a trace..." required value={newComment.content} onChange={e => setNewComment({...newComment, content: e.target.value})} className="flex-1 p-4 bg-stone-50 rounded-sm text-[15px] h-24 outline-none resize-none font-medium border border-stone-100 focus:bg-white transition-all" />
-                  <button type="submit" className="bg-stone-900 text-stone-100 px-8 rounded-sm font-black text-[12px] tracking-widest uppercase hover:bg-black transition-colors">Post</button>
+                  <textarea placeholder="문장 혹은 생각을 남겨주세요..." required value={newComment.content} onChange={e => setNewComment({...newComment, content: e.target.value})} className="flex-1 p-4 bg-stone-50 rounded-sm text-[14px] h-24 outline-none resize-none font-medium border border-stone-100 focus:bg-white transition-all" />
+                  <button type="submit" className="bg-stone-900 text-stone-100 px-6 rounded-sm font-black text-[11px] tracking-[0.2em] uppercase hover:bg-black transition-colors">POST</button>
                 </div>
               </form>
             </div>
@@ -387,7 +415,7 @@ function App() {
         </div>
       )}
 
-      {/* 일정 상세 모달 */}
+      {/* --- 일정 모달 --- */}
       {selectedEvent && (
         <div className="fixed inset-0 bg-stone-900/95 flex items-center justify-center p-4 z-[500]" onClick={() => setSelectedEvent(null)}>
           <div className="bg-white rounded-sm w-full max-w-md shadow-2xl relative text-left overflow-hidden animate-in zoom-in duration-300" onClick={e => e.stopPropagation()}>
@@ -405,7 +433,6 @@ function App() {
         </div>
       )}
 
-      {/* 일정 등록 모달 */}
       {isEventModalOpen && (
         <div className="fixed inset-0 bg-stone-900/70 backdrop-blur-sm flex items-center justify-center p-4 z-[450]" onClick={() => setIsEventModalOpen(false)}>
           <div className="bg-white p-12 w-full max-w-lg shadow-2xl relative text-left rounded-sm" onClick={e => e.stopPropagation()}>
@@ -424,7 +451,6 @@ function App() {
         </div>
       )}
 
-      {/* 도서 등록 모달 (시즌 & 날짜 추가) */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-stone-900/70 backdrop-blur-sm flex items-center justify-center p-4 z-[400]" onClick={() => setIsModalOpen(false)}>
           <div className="bg-white p-16 w-full max-w-lg shadow-2xl relative text-left rounded-sm" onClick={e => e.stopPropagation()}>
@@ -434,7 +460,6 @@ function App() {
               <div className="flex gap-12 justify-center mb-8">
                 {['NY', 'NJ'].map(r => (<button key={r} type="button" onClick={() => setFormData({...formData, region: r})} className={`text-[13px] font-black tracking-widest transition-all ${formData.region === r ? 'text-[#722F37] border-b-4 border-[#722F37] pb-1' : 'text-stone-300'}`}>{r === 'NY' ? '🍎 NY' : '🌳 NJ'}</button>))}
               </div>
-
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-1">
                   <label className="text-[11px] font-black text-stone-400 uppercase tracking-widest">Season</label>
@@ -445,7 +470,6 @@ function App() {
                   <input type="date" required className="w-full bg-transparent border-b-2 border-stone-200 py-2 outline-none font-bold" value={formData.meeting_date} onChange={e => setFormData({...formData, meeting_date: e.target.value})} />
                 </div>
               </div>
-
               <input type="text" placeholder="Book Title" required className="w-full bg-transparent border-b-2 border-stone-200 py-3 outline-none font-black text-lg focus:border-stone-800" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
               <input type="text" placeholder="Author" required className="w-full bg-transparent border-b-2 border-stone-200 py-3 outline-none font-medium" value={formData.author} onChange={e => setFormData({...formData, author: e.target.value})} />
               <input type="text" placeholder="Cover Image URL" required className="w-full bg-transparent border-b-2 border-stone-200 py-3 outline-none font-medium" value={formData.image_url} onChange={e => setFormData({...formData, image_url: e.target.value})} />
@@ -455,12 +479,10 @@ function App() {
         </div>
       )}
 
-      {/* 푸터 */}
-      <footer className="max-w-6xl mx-auto px-6 py-24 border-t border-stone-200 text-center font-['Noto_Serif_KR']">
+      <footer className="max-w-7xl mx-auto px-6 py-24 border-t border-stone-200 text-center font-['Noto_Serif_KR']">
         <div className="flex justify-center mb-10">
           <img src="/logo.png" className="w-12 h-12 object-contain grayscale opacity-20" alt="footer-logo" />
         </div>
-        
         <div className="space-y-4 mb-12">
           <p className="text-[12px] text-stone-600 font-black tracking-[0.2em] uppercase">Copyright Disclaimer</p>
           <p className="text-[14px] text-stone-500 leading-relaxed max-w-2xl mx-auto font-light italic">
@@ -468,7 +490,6 @@ function App() {
             All book covers and images are the property of their respective copyright owners. <br />
             We will <span className="text-stone-800 font-bold underline decoration-stone-200">promptly remove</span> any content upon request from the original holders.
           </p>
-          
           <div className="flex items-center justify-center gap-2 mt-6 py-2 px-4 bg-stone-100/50 w-fit mx-auto rounded-full">
             <Mail size={14} className="text-stone-400" />
             <span className="text-[11px] font-black text-stone-400 uppercase tracking-widest">Inquiry:</span>
@@ -477,7 +498,6 @@ function App() {
             </a>
           </div>
         </div>
-
         <p className="text-[10px] tracking-[0.4em] text-stone-300 uppercase font-black">
           © 2025 NJ·NY Book Club. All rights reserved.
         </p>

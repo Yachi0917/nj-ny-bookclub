@@ -292,12 +292,12 @@ function App() {
             <p className="text-stone-500 text-base md:text-lg italic mb-20">"책과 토론 주제들을 언제든지 자유롭게 신청해주세요"</p>
             <div className="space-y-4 text-left text-left">
                 {[
-                  { title: "NJ 책 신청", url: "https://docs.google.com/forms/d/e/1FAIpQLScfhAqUdgJiPqWiFeZZ5rItQJlfNNxp7fmIqL2bK4PfzG8XGQ/viewform" },
-                  { title: "NJ 토론 주제 신청", url: "https://docs.google.com/forms/d/e/1FAIpQLSeohPLIwspJ5AbE_xAO8CfeNXWTKc8KtS7AHd-4e7igwd2Mxw/viewform" },
-                  { title: "NJ 소모임 신청", url: "https://docs.google.com/forms/d/e/1FAIpQLSePt2INF-gJEHdvFED5KVxEuUYMZskDnIPjmb2hFg_dSvq4og/viewform" },
-                  { title: "NY 책 신청", url: "https://docs.google.com/forms/d/e/1FAIpQLSexvlkL-IC6WhLygkDIofNIvusPH5srwsaY8VU3b7B8ut8jQQ/viewform" },
-                  { title: "NY 토론 주제 신청", url: "https://docs.google.com/forms/d/e/1FAIpQLSfwcCGjpdr3lwjWMC_26pUGuHnATdhFlnkA87rKTMah9xegfA/viewform" },
-                  { title: "소모임 신청", url: "https://forms.gle/1cUkfwja7R1kiYhz5" }
+                  { title: "[뉴저지] 책 신청", url: "https://docs.google.com/forms/d/e/1FAIpQLScfhAqUdgJiPqWiFeZZ5rItQJlfNNxp7fmIqL2bK4PfzG8XGQ/viewform" },
+                  { title: "[뉴저지] 토론 주제 신청", url: "https://docs.google.com/forms/d/e/1FAIpQLSeohPLIwspJ5AbE_xAO8CfeNXWTKc8KtS7AHd-4e7igwd2Mxw/viewform" },
+                  { title: "[뉴욕] 책 신청", url: "https://docs.google.com/forms/d/e/1FAIpQLSexvlkL-IC6WhLygkDIofNIvusPH5srwsaY8VU3b7B8ut8jQQ/viewform" },
+                  { title: "[뉴욕] 토론 주제 신청", url: "https://docs.google.com/forms/d/e/1FAIpQLSfwcCGjpdr3lwjWMC_26pUGuHnATdhFlnkA87rKTMah9xegfA/viewform" },
+                  { title: "소모임 신청", url: "https://forms.gle/1cUkfwja7R1kiYhz5" },
+                  { title: "건의사항", url: "https://docs.google.com/forms/d/e/1FAIpQLSePt2INF-gJEHdvFED5KVxEuUYMZskDnIPjmb2hFg_dSvq4og/viewform" }
                 ].map((form, idx) => (
                   <div key={idx} onClick={() => window.open(form.url)} className="p-6 md:p-10 bg-white border border-stone-200 shadow-md hover:-translate-y-1 hover:shadow-2xl transition-all cursor-pointer flex justify-between items-center group rounded-sm text-left text-left text-left">
                     <div><h3 className="font-black text-lg md:text-xl mb-1 group-hover:text-[#722F37] transition-colors">{form.title}</h3><p className="text-stone-500 text-[11px] font-bold uppercase tracking-wider">Application Form</p></div><ChevronRight size={22} className="text-stone-300 group-hover:text-[#722F37]" />

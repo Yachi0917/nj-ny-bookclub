@@ -15,7 +15,7 @@ function App() {
   const [activeTab, setActiveTab] = useState('HOME');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
-  const CORRECT_PASSWORD = "5557";
+  const CORRECT_PASSWORD = "1106";
 
   const [posts, setPosts] = useState([]);
   const [essays, setEssays] = useState([]);
